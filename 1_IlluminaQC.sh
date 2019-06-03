@@ -9,7 +9,7 @@ cd $PBS_O_WORKDIR
 #Author: Matt Lyon, edited by Sara Rey All Wales Medical Genetics Lab
 #Mode: BY_RUN
 #Usage: mkdir /data/archive/fastq/<seqId> && cd /data/archive/fastq/<seqId> && qsub -v sourceDir=/data/archive/miseq/<seqId> /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-<version>/1_IlluminaQC.sh
-version="1.0.6"
+version="1.0.7"
 
 ### Preparation ###
 
@@ -39,7 +39,7 @@ echo -e "$(basename $sourceDir)\t$yieldGb\t$q30Pct\t$avgDensity\t$avgPf\t$totalR
 >"samplenames.list"
 
 # obtain list of samples from sample sheet
-for line in $(sed "1,/Sample_ID/d" "$sourceDir"/"SampleSheet.csv" | tr -d " ")
+for line in $(grep -Ev "^$|^," "$sourceDir"/"SampleSheet.csv" | sed "1,/Sample_ID/d" | tr -d " ")
 do
 	# obtain sample name and patient name		
 	samplename=$(printf "$line" | cut -d, -f1 | sed 's/[^a-zA-Z0-9]+/-/g')
