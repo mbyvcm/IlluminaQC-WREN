@@ -9,7 +9,7 @@ cd $PBS_O_WORKDIR
 #Author: Matt Lyon, edited by Sara Rey All Wales Medical Genetics Lab
 #Mode: BY_RUN
 #Usage: mkdir /data/archive/fastq/<seqId> && cd /data/archive/fastq/<seqId> && qsub -v sourceDir=/data/archive/miseq/<seqId> /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-<version>/1_IlluminaQC.sh
-version="1.0.7"
+version="1.0.8"
 
 ### Preparation ###
 
@@ -38,12 +38,25 @@ echo -e "$(basename $sourceDir)\t$yieldGb\t$q30Pct\t$avgDensity\t$avgPf\t$totalR
 # clear sample name list
 >"samplenames.list"
 
+# clear sample name and panels list
+>"samplepanels.list"
+
+# declare array to store different panels
+allPanels=()
+
 # obtain list of samples from sample sheet
 for line in $(grep -Ev "^$|^," "$sourceDir"/"SampleSheet.csv" | sed "1,/Sample_ID/d" | tr -d " ")
 do
-	# obtain sample name and patient name		
+	# obtain sample name (from column 1- Sample_ID of sample sheet)		
 	samplename=$(printf "$line" | cut -d, -f1 | sed 's/[^a-zA-Z0-9]+/-/g')
 	echo "$samplename" >> "samplenames.list"
+	# obtain panels
+	sampleDescription=$(printf "$line" | awk -F"," '{print $NF}';)
+	# Identify panel
+	samplePanel=$(awk -v d="$sampleDescription" 'BEGIN {n=split(d,l,";"); {for (i=1; i<=n;++i) if (l[i]~"panel=") {print l[i]}}}' | cut -d"=" -f2)
+	allPanels+=("$samplePanel")
+	printf "%s\t" "$samplename" >> "samplepanels.list"
+	printf "%s\n" "$samplePanel" >> "samplepanels.list"
 done
 
 #convert BCLs to FASTQ
@@ -128,18 +141,24 @@ for variableFile in $(ls *.variables); do
 done
 
 #queue pipeline
-# compare directory number in data/results/ to list of samples from sample sheet
-if ! [[ $(ls /data/results/"$seqId"/"$panel"/ | wc -l) -eq $(sort samplenames.list | wc -l | sed 's/^[[:space:]]*//g') ]]
-then
-	echo "Number of sample directories created not as expected"
-	exit 1
-else
-	for sampledirectory in $(ls /data/results/"$seqId"/"$panel"/)
-	do
-		bash -c "cd /data/results/$seqId/$panel/$sampledirectory && qsub 1_*.sh"
-	done
-	echo "Expected number of sample directories created"
-fi
+# compare directory number in data/results/ to list of samples from sample sheet for each panel on the run
+for p in $(printf "%s\n" "${allPanels[@]}" | sort | uniq);
+do
+	echo $p panel
+	if ! [[ $(ls /data/results/"$seqId"/"$p"/ | wc -l) -eq $(grep "$p" samplepanels.list | wc -l | sed 's/^[[:space:]]*//g') ]]
+	then
+		echo "Number of sample directories created not as expected"
+		exit 1
+	else
+		echo "Expected number of sample directories created"
+		for sampledirectory in $(ls /data/results/"$seqId"/"$p"/)
+		do
+			bash -c "cd /data/results/$seqId/$p/$sampledirectory && qsub 1_*.sh"
+		done
+	fi
+done
 
-#remove list of samples
+
+#remove list of samples and list of samples and panels
 rm "samplenames.list"
+rm "samplepanels.list"
