@@ -4,7 +4,7 @@ set -euo pipefail
 #Description: shell script to launch bioinformatics analysis pipelines. Run as root cron job without .sh extension
 #Author:Matt Lyon
 #Date: 28/02/17
-version="1.0.7"
+version="1.0.8"
 
 function processJobs {
     echo "checking for jobs in $1 ..."
@@ -38,3 +38,4 @@ function processJobs {
 processJobs "/data/raw/miseq"
 processJobs "/data/raw/hiseq"
 processJobs "/data/raw/nextseq"
+processJobs "/data/raw/novaseq"
