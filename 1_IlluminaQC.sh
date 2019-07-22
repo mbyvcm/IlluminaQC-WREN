@@ -9,7 +9,7 @@ cd $PBS_O_WORKDIR
 #Author: Matt Lyon, edited by Sara Rey All Wales Medical Genetics Lab
 #Mode: BY_RUN
 #Usage: mkdir /data/archive/fastq/<seqId> && cd /data/archive/fastq/<seqId> && qsub -v sourceDir=/data/archive/miseq/<seqId> /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-<version>/1_IlluminaQC.sh
-version="1.0.8"
+version="1.0.9"
 
 ### Preparation ###
 
@@ -53,7 +53,7 @@ do
 	# obtain panels
 	sampleDescription=$(printf "$line" | awk -F"," '{print $NF}';)
 	# Identify panel
-	samplePanel=$(awk -v d="$sampleDescription" 'BEGIN {n=split(d,l,";"); {for (i=1; i<=n;++i) if (l[i]~"panel=") {print l[i]}}}' | cut -d"=" -f2)
+	samplePanel=$(awk -v d="$sampleDescription" 'BEGIN {n=split(d,l,";"); {for (i=1; i<=n;++i) if (l[i]~"panel=") {print l[i]}}}' | cut -d"=" -f2 | tr -d '\r')
 	allPanels+=("$samplePanel")
 	printf "%s\t" "$samplename" >> "samplepanels.list"
 	printf "%s\n" "$samplePanel" >> "samplepanels.list"
