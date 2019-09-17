@@ -45,7 +45,7 @@ echo -e "$(basename $sourceDir)\t$yieldGb\t$q30Pct\t$avgDensity\t$avgPf\t$totalR
 allPanels=()
 
 # obtain list of samples from sample sheet
-for line in $(grep -Ev "^$|^," "$sourceDir"/"SampleSheet.csv" | sed "1,/Sample_ID/d" | tr -d " ")
+for line in $(grep -Ev "^$|^," "$sourceDir"/"SampleSheet.csv" | sed "1,/Sample_ID/d" | tr -d " " | sed 's/,*\r*$//')
 do
 	# obtain sample name (from column 1- Sample_ID of sample sheet)		
 	samplename=$(printf "$line" | cut -d, -f1 | sed 's/[^a-zA-Z0-9]+/-/g')

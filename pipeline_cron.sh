@@ -3,8 +3,8 @@ set -euo pipefail
 
 #Description: shell script to launch bioinformatics analysis pipelines. Run as root cron job without .sh extension
 #Author:Matt Lyon
-#Date: 28/02/17
-version="1.0.9"
+#Date: 17/09/19
+version="1.1.0"
 
 function processJobs {
     echo "checking for jobs in $1 ..."
