@@ -33,6 +33,11 @@ function processJobs {
 	  echo "processing on Dragen"
           #move to novaseq dir
 	  mv "$path" /data/raw/novaseq/ 
+          #fix permissions          
+          chown -R sbsuser /data/raw/novaseq/"$run"
+          chgrp -R bi /data/raw/novaseq/"$run"
+          chmod -R 755 /data/raw/novaseq/"$run"
+          
 
         else
 
@@ -44,6 +49,8 @@ function processJobs {
 
           #move run to archive
           mv "$path" /data/archive/"$instrumentType"
+          
+          touch /data/archive/"$instrumentType"/"$run"/run_copy_complete.txt
 
           #change access permissions
           chown -R transfer /data/archive/"$instrumentType"/"$run"
