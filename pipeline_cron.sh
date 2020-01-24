@@ -1,5 +1,5 @@
 #!/bin/sh
-set -euo pipefail
+#set -euo pipefail
 
 #Description: shell script to launch bioinformatics analysis pipelines. Run as root cron job without .sh extension
 #Author:Matt Lyon
@@ -10,6 +10,7 @@ function processJobs {
     echo "checking for jobs in $1 ..."
 
     for path in $(find "$1" -maxdepth 2 -mindepth 2 -type f -name "RTAComplete.txt" -exec dirname '{}' \;); do
+        
 
         #extract run info from path
         instrumentType=$(basename $(dirname "$path"))
@@ -19,10 +20,14 @@ function processJobs {
 	if [ -f "/data/raw/$instrumentType/$run/SampleSheet.csv" ]; then
         
         #check whether it has Dragen in it
-	dragen=$(grep Dragen /data/raw/$instrumentType/$run/SampleSheet.csv | wc -l )
-
+        set +u
+	dragen="$(grep Dragen /data/raw/"$instrumentType"/"$run"/SampleSheet.csv | wc -l)"
+        echo $dragen
+        set -u
         else
-        
+
+        echo could not find sample sheet
+
         dragen=0
 
         fi
