@@ -4,7 +4,7 @@
 #SBATCH --output=IlluminaQC-%N-%j.output
 #SBATCH --error=IlluminaQC-%N-%j.error
 #SBATCH --partition=demultiplexing
-#SBATCH --cpus-per-task=20
+#SBATCH --cpus-per-task=40
 #SBATCH --job-name="IlluminaQC"
 
 cd $SLURM_SUBMIT_DIR
