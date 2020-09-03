@@ -34,7 +34,7 @@ function processJobs {
 
         # launch IlluminaQC for demultiplexing and QC
         mkdir $fastq_dir/$run && cd $fastq_dir/$run
-        sbatch --export=sourceDir=$bcl_arc_dir/$instrumentType/$run /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh
+        sbatch -J IlluminaQC-"$run" --export=sourceDir=$bcl_arc_dir/$instrumentType/$run /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh
 
     done
 

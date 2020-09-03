@@ -83,6 +83,6 @@ for variableFile in $(ls *.variables); do
 		# copy scripts
 		cp /data/diagnostics/pipelines/"$pipelineName"/"$pipelineName"-"$pipelineVersion"/*sh $res_dir
 
-                bash -c "cd $res_dir && sbatch 1_*.sh"
+                bash -c "cd $res_dir && sbatch -J "$panel"-"$sampleId" 1_*.sh"
 	fi
 done
