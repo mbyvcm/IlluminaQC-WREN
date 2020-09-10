@@ -5,9 +5,9 @@ set -euo pipefail
 # Date: 18/08/20
 version="1.2.0"
 
-bcl_raw_dir="/home/transfer/data/raw"
-bcl_arc_dir="/home/transfer/data/archive"
-fastq_dir="/home/transfer/data/archive/fastq"
+bcl_raw_dir="/data/raw"
+bcl_arc_dir="/data/archive"
+fastq_dir="$bcl_arc_dir/fastq"
 
 
 function processJobs {
@@ -25,22 +25,21 @@ function processJobs {
         echo "instrumentType: $instrumentType"
 
         # move run to archive - CHANGE FROM CP
-        #cp -r "$path" "$bcl_arc_dir/$instrumentType/$run"
+        cp -r "$path" "$bcl_arc_dir/$instrumentType/$run"
 
         # change access permissions
-        #chown -R transfer "$bcl_arc_dir"/"$instrumentType"/"$run"
-        #chgrp -R transfer "$bcl_arc_dir"/"$instrumentType"/"$run"
-        #chmod -R 755 "$bcl_arc_dir"/"$instrumentType"/"$run"
+        chown transfer "$bcl_arc_dir"/"$instrumentType"/"$run"/SampleSheet.csv
+        chgrp transfer "$bcl_arc_dir"/"$instrumentType"/"$run"/SampleSheet.csv
 
         # launch IlluminaQC for demultiplexing and QC
         mkdir $fastq_dir/$run && cd $fastq_dir/$run
+        su - transfer && \
         sbatch -J IlluminaQC-"$run" --export=sourceDir=$bcl_arc_dir/$instrumentType/$run /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh
-
     done
 
 }
 
-processJobs "$bcl_raw_dir/hiseq"
-processJobs "$bcl_raw_dir/nextseq"
-processJobs "$bcl_raw_dir/novaseq"
-processJobs "$bcl_raw_dir/miseq"
+#processJobs "$bcl_raw_dir/hiseq"
+#processJobs "$bcl_raw_dir/nextseq"
+#processJobs "$bcl_raw_dir/novaseq"
+#processJobs "$bcl_raw_dir/miseq"
