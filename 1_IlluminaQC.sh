@@ -11,12 +11,12 @@ cd $SLURM_SUBMIT_DIR
 version="1.2.0"
 
 # results location
-res_dir_root=/home/transfer/data/results
+res_dir_root=/data/results
 
 # load modules & conda envs
 module purge
 module load anaconda
-source activate IlluminaQC
+source activate IlluminaQC-v1.2.0
 
 # collect interop data
 summary=$(interop_summary --level=3 --csv=1 "$sourceDir")
