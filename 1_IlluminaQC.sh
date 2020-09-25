@@ -6,12 +6,15 @@
 #SBATCH --partition=demultiplexing
 #SBATCH --cpus-per-task=40
 
+# Useage: mkdir /data/output/fastq/<seqId> && cd /data/output/fastq/<seqId> &&
+#   sbatch -J IlluminaQC-<seqId> --export=sourceDir=/data/archive/<instrumentType>/<seqId> /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-<version>/1_IlluminaQC.sh
+
 cd $SLURM_SUBMIT_DIR
 
 version="1.2.0"
 
 # results location
-res_dir_root=/Output/results
+res_dir_base=/Output/results
 
 # load modules & conda envs
 module purge
@@ -73,7 +76,7 @@ for variableFile in $(ls *.variables); do
 	then
 
 		# make project folders
-		res_dir=/$res_dir_root/"$seqId"/"$worklistId"/"$panel"/"$sampleId"
+		res_dir=/$res_dir_base/"$seqId"/"$worklistId"/"$panel"/"$sampleId"
                 mkdir -p $res_dir
 
 		#soft link files
