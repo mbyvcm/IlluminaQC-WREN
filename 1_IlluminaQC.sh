@@ -6,7 +6,7 @@
 #SBATCH --partition=demultiplexing
 #SBATCH --cpus-per-task=40
 
-# Useage: mkdir /data/output/fastq/<seqId> && cd /data/output/fastq/<seqId> &&
+# Useage: <as transfer user> mkdir /data/output/fastq/<seqId> && cd /data/output/fastq/<seqId> &&
 #   sbatch -J IlluminaQC-<seqId> --export=sourceDir=/data/archive/<instrumentType>/<seqId> /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-<version>/1_IlluminaQC.sh
 
 cd $SLURM_SUBMIT_DIR
@@ -80,7 +80,7 @@ for variableFile in $(ls *.variables); do
                 mkdir -p $res_dir
 
 		#soft link files
-		ln -s $PWD/Data/"$sampleId"/"$variableFile" $res_dir
+		cp $PWD/Data/"$sampleId"/"$variableFile" $res_dir
 		for i in $(ls Data/"$sampleId"/"$sampleId"_S*.fastq.gz); do
 			ln -s $PWD/"$i" $res_dir
 		done
