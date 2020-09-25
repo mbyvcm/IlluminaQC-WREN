@@ -1,14 +1,22 @@
 #!/bin/sh
 set -euo pipefail
 
-# Description: shell script to launch bioinformatics analysis pipelines. Run as root cron job without .sh extension
+# Description: shell script to launch bioinformatics analysis pipelines.
+# This script should be executed as sbsuser 
 # Date: 18/08/20
 version="1.2.0"
 
-bcl_raw_dir="/data/raw"
-bcl_arc_dir="/data/archive"
-fastq_dir="$bcl_arc_dir/fastq"
+# use to read raw data
+bcl_raw_read="/data/raw"
 
+# use to write to archive 
+bcl_arc_write="/data_heath/archive"
+
+# use to read from archive
+bcl_arc_read="/data/archive"
+
+# user to write from childnodes
+fastq_write="/Output/fastq"
 
 function processJobs {
     echo "checking for jobs in $1 ..."
@@ -24,17 +32,19 @@ function processJobs {
         echo "run: $run"
         echo "instrumentType: $instrumentType"
 
-        # move run to archive - CHANGE FROM CP
-        cp -r "$path" "$bcl_arc_dir/$instrumentType/$run"
+        # move run to archive
+        mv -r "$path" "$bcl_arc_write/$instrumentType/$run"
 
         # change access permissions
-        chown transfer "$bcl_arc_dir"/"$instrumentType"/"$run"/SampleSheet.csv
-        chgrp transfer "$bcl_arc_dir"/"$instrumentType"/"$run"/SampleSheet.csv
+        chmod -R 755 "$bcl_arc_write"/"$instrumentType"/"$run"
+        chmod 777 "$bcl_arc_write"/"$instrumentType"/"$run"/SampleSheet.csv
+
+        # allow time to redwood isilon to sync
+        sleep 1h
 
         # launch IlluminaQC for demultiplexing and QC
-        mkdir $fastq_dir/$run && cd $fastq_dir/$run
-        su - transfer && \
-        sbatch -J IlluminaQC-"$run" --export=sourceDir=$bcl_arc_dir/$instrumentType/$run /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh
+        ssh transfer@172.25.0.1 "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch -J IlluminaQC-"$run" --export=sourceDir=$bcl_arc_read/$instrumentType/$run /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh"
+
     done
 
 }
