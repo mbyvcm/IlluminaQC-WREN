@@ -48,7 +48,7 @@ function processJobs {
         sleep 5m
 
         # launch IlluminaQC for demultiplexing and QC 
-        ssh transfer@172.25.0.1 "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch -J IlluminaQC-"$run" --export=sourceDir=$path /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh"
+        ssh transfer "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch -J IlluminaQC-"$run" --export=sourceDir=$path /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh"
 
     done
 
