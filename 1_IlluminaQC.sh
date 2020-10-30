@@ -76,7 +76,7 @@ for variableFile in $(ls *.variables); do
 	then
 
 		# make project folders
-		res_dir=/$res_dir_base/"$seqId"/"$worklistId"/"$panel"/"$sampleId"
+		res_dir=/$res_dir_base/"$seqId"/"$panel"/"$sampleId"
                 mkdir -p $res_dir
 
 		#soft link files
