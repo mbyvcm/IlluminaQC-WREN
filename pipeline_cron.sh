@@ -38,59 +38,50 @@ function processJobs {
         if [ -f "$path"/do_not_process ]; then
 
             echo "Not processing run $run"
-
         else
 
-        # remove spaces from sample sheet
-        sed -i 's/ //g' $raw_write/$instrumentType/$run/SampleSheet.csv
+            # remove spaces from sample sheet
+            sed -i 's/ //g' $raw_write/$instrumentType/$run/SampleSheet.csv
 
-        # modify RTAComplete to prevent cron re-triggering
-        mv $raw_write/$instrumentType/$run/RTAComplete.txt $raw_write/$instrumentType/$run/_RTAComplete.txt
+            # modify RTAComplete to prevent cron re-triggering
+            mv $raw_write/$instrumentType/$run/RTAComplete.txt $raw_write/$instrumentType/$run/_RTAComplete.txt
         
-        sleep 5m 
-        # counting instances of Dragen in SampleSheet
-        set +e
-        is_dragen=$(cat "$path"/SampleSheet.csv | grep "Dragen" | wc -l)
-        set -e
+            #sleep 5m 
+            # counting instances of Dragen in SampleSheet
+            set +e
+            is_dragen=$(cat "$path"/SampleSheet.csv | grep "Dragen" | wc -l)
+            set -e
 
-        if [ $is_dragen -gt 0 ]; then
+            if [ $is_dragen -gt 0 ]; then
 
-            echo "Keyword Dragen found in SampleSheet so executing DragenQC"
-            ssh ch1 "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch --export=sourceDir=$path /data/diagnostics/pipelines/DragenQC/DragenQC-master/DragenQC.sh"            
+                echo "Keyword Dragen found in SampleSheet so executing DragenQC"
+                ssh ch1 "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch --export=sourceDir=$path /data/diagnostics/pipelines/DragenQC/DragenQC-master/DragenQC.sh"
+            else
 
+                # launch IlluminaQC for demultiplexing and QC
+                ssh ch1 "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch -J IlluminaQC-"$run" --export=sourceDir=$path /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh"
+            fi
 
-        else
+            # check we havent already copied the directory
+            if [ -d "$arc_write/$instrumentType/$run" ]; then
 
-            # launch IlluminaQC for demultiplexing and QC
-            ssh ch1 "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch -J IlluminaQC-"$run" --export=sourceDir=$path /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh"
+                echo "$arc_write/$instrumentType/$run already exists"
+            else
 
-        fi
+                # move run to archive
+                cp -r "$raw_write/$instrumentType/$run" "$arc_write/$instrumentType/$run"
 
+                touch "$arc_write/$instrumentType/$run"/run_copy_complete.txt
 
-        # check we havent already copied the directory
-        if [ -d "$arc_write/$instrumentType/$run" ]; then
-
-            echo "$arc_write/$instrumentType/$run already exists"
-
-        else
-
-            # move run to archive
-            cp -r "$raw_write/$instrumentType/$run" "$arc_write/$instrumentType/$run"
-
-            touch "$arc_write/$instrumentType/$run"/run_copy_complete.txt
-
-            # change access permissions
-            chmod -R 755 "$arc_write"/"$instrumentType"/"$run"
-            chmod 777 "$arc_write"/"$instrumentType"/"$run"/SampleSheet.csv
+                # change access permissions
+                chmod -R 755 "$arc_write"/"$instrumentType"/"$run"
+                chmod 777 "$arc_write"/"$instrumentType"/"$run"/SampleSheet.csv
             
+            fi
 
         fi
-
-        fi
-
 
     done
-
 }
 
 #processJobs "$raw_read/hiseq"

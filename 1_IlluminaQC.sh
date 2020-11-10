@@ -13,8 +13,16 @@ cd $SLURM_SUBMIT_DIR
 
 version="1.2.0"
 
-# results location
-res_dir_base=/Output/results
+# results location for validations
+val_dir_base=/Output/validations/
+
+# set results dir
+if [ -z ${validation-} ] || [ $validation == 'FALSE' ]; then
+	res_dir_base=/Output/results
+else
+	res_dir_base=$val_dir_base
+fi
+unset validation
 
 # load modules & conda envs
 module purge
@@ -75,8 +83,15 @@ for variableFile in $(ls *.variables); do
 	if [[ ! -z ${pipelineVersion-} && ! -z ${pipelineName-} && ! -z ${panel-} && ! -z ${worklistId-} ]]
 	then
 
+		# set different output path for validations if given
+		if [ -z ${validation-} ] || [ $validation == 'FALSE' ]; then
+			res_dir=/$res_dir_base/"$seqId"/"$panel"/"$sampleId"
+		else 
+			res_dir=/$val_dir_base/"$seqId"/"$panel"/"$sampleId"
+		fi
+		unset validation
+
 		# make project folders
-		res_dir=/$res_dir_base/"$seqId"/"$panel"/"$sampleId"
                 mkdir -p $res_dir
 
 		#soft link files
