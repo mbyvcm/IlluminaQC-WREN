@@ -26,7 +26,7 @@ unset validation
 
 # load modules & conda envs
 module purge
-module load anaconda
+module load anaconda bcl2fastq
 source activate IlluminaQC-v1.2.0
 
 # catch errors early
