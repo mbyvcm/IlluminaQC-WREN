@@ -1,80 +1,57 @@
 #!/bin/bash
-#PBS -l walltime=12:00:00
-#PBS -l ncpus=12
+
+#SBATCH --time=12:00:00
+#SBATCH --output=IlluminaQC-%N-%j.output
+#SBATCH --error=IlluminaQC-%N-%j.error
+#SBATCH --partition=demultiplexing
+#SBATCH --cpus-per-task=40
+
+# Useage: <as transfer user> mkdir /data/output/fastq/<seqId> && cd /data/output/fastq/<seqId> &&
+#   sbatch -J IlluminaQC-<seqId> --export=sourceDir=/data/archive/<instrumentType>/<seqId> /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-<version>/1_IlluminaQC.sh
+
+cd $SLURM_SUBMIT_DIR
+
+version="1.2.0"
+
+# results location for validations
+val_dir_base=/Output/validations/
+
+# set results dir
+if [ -z ${validation-} ] || [ $validation == 'FALSE' ]; then
+	res_dir_base=/Output/results
+else
+	res_dir_base=$val_dir_base
+fi
+unset validation
+
+# load modules & conda envs
+module purge
+module load anaconda bcl2fastq
+source activate IlluminaQC-v1.2.0
+
+# catch errors early
 set -euo pipefail
-PBS_O_WORKDIR=(`echo $PBS_O_WORKDIR | sed "s/^\/state\/partition1//" `)
-cd $PBS_O_WORKDIR
 
-#Description: FASTQ generation and quality control for paired-end Illumina sequencing data. Not for use with other instruments or run configurations.
-#Author: Matt Lyon, edited by Sara Rey All Wales Medical Genetics Lab
-#Mode: BY_RUN
-#Usage: mkdir /data/archive/fastq/<seqId> && cd /data/archive/fastq/<seqId> && qsub -v sourceDir=/data/archive/miseq/<seqId> /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-<version>/1_IlluminaQC.sh
-version="1.1.0"
+# collect interop data
+summary=$(interop_summary --level=3 --csv=1 "$sourceDir")
 
-### Preparation ###
-
-#collect interop data
-summary=$(/share/apps/interop-distros/InterOp-1.0.25-Linux-GNU-4.8.2/bin/summary --level=3 --csv=1 "$sourceDir")
-
-#extract fields
+# extract fields
 yieldGb=$(echo "$summary" | grep ^Total | cut -d, -f2)
 q30Pct=$(echo "$summary" | grep ^Total | cut -d, -f7)
 avgDensity=$(echo "$summary" | grep -A999 "^Level" | grep ^[[:space:]]*[0-9] | awk -F',| ' '{print $1"\t"$4}' | sort | uniq | awk -F'\t' '{total += $2; count++} END {print total/count}')
 avgPf=$(echo "$summary" | grep -A999 "^Level" |grep ^[[:space:]]*[0-9] | awk -F',| ' '{print $1"\t"$7}' | sort | uniq | awk -F'\t' '{total += $2; count++} END {print total/count}')
 totalReads=$(echo "$summary" | grep -A999 "^Level" | grep ^[[:space:]]*[0-9] | awk -F',| ' '{print $1"\t"$19}' | sort | uniq | awk -F'\t' '{total += $2} END {print total}')
 
-#print metrics (headers)
-if [ ! -e /data/temp/Metrics.txt ]; then
-    echo -e "Run\tTotalGb\tQ30\tAvgDensity\tAvgPF\tTotalMReads" > /data/temp/Metrics.txt
+# print metrics (headers)
+if [ ! -e Metrics.txt ]; then
+    echo -e "Run\tTotalGb\tQ30\tAvgDensity\tAvgPF\tTotalMReads" > Metrics.txt
 fi
 
-#print metrics (values)
-echo -e "$(basename $sourceDir)\t$yieldGb\t$q30Pct\t$avgDensity\t$avgPf\t$totalReads" >> /data/temp/Metrics.txt
+# print metrics (values)
+echo -e "$(basename $sourceDir)\t$yieldGb\t$q30Pct\t$avgDensity\t$avgPf\t$totalReads" >> Metrics.txt
 
-#update run log
-#TODO
-
-#parse sample sheet and create list of samples
-# clear sample name list
->"samplenames.list"
-
-# clear sample name and panels list
->"samplepanels.list"
-
-# declare array to store different panels
-allPanels=()
-
-# obtain list of samples from sample sheet
-for line in $(grep -Ev "^$|^," "$sourceDir"/"SampleSheet.csv" | sed "1,/Sample_ID/d" | tr -d " " | sed 's/,*\r*$//')
-do
-	# obtain sample name (from column 1- Sample_ID of sample sheet)		
-	samplename=$(printf "$line" | cut -d, -f1 | sed 's/[^a-zA-Z0-9]+/-/g')
-	echo "$samplename" >> "samplenames.list"
-	# obtain panels
-	sampleDescription=$(printf "$line" | awk -F"," '{print $NF}';)
-	# Identify panel
-	samplePanel=$(awk -v d="$sampleDescription" 'BEGIN {n=split(d,l,";"); {for (i=1; i<=n;++i) if (l[i]~"panel=") {print l[i]}}}' | cut -d"=" -f2 | tr -d '\r')
-	allPanels+=("$samplePanel")
-	printf "%s\t" "$samplename" >> "samplepanels.list"
-	printf "%s\n" "$samplePanel" >> "samplepanels.list"
-done
-
-#convert BCLs to FASTQ
-/usr/local/bin/bcl2fastq -l WARNING -R "$sourceDir" -o .
-rm Undetermined_S0_*.fastq.gz
-
-# compare samples list to fastqs generated
-for sn in $( cat samplenames.list )
-do
-	if ! [[ $(find . -name "$sn"'*fastq*') ]]
-	then
-		echo "Missing fastqs for sample " "$sn"
-		exit 1
-	else
-		echo "Fastqs generated for sample " "$sn"
-	fi
-done 
-
+# BCL2FASTQ
+bcl2fastq -l WARNING -R "$sourceDir" -o .
 
 #copy files to keep to long-term storage
 mkdir Data
@@ -83,82 +60,49 @@ cp "$sourceDir"/?unParameters.xml RunParameters.xml
 cp "$sourceDir"/RunInfo.xml .
 cp -R "$sourceDir"/InterOp .
 
-#Make variable files
-/share/apps/jre-distros/jre1.8.0_101/bin/java -jar /data/diagnostics/apps/MakeVariableFiles/MakeVariableFiles-2.1.0.jar \
-SampleSheet.csv \
-RunParameters.xml
+# Make variable files
+java -jar /data/diagnostics/apps/MakeVariableFiles/MakeVariableFiles-2.1.0.jar \
+  SampleSheet.csv \
+  RunParameters.xml
 
-# compare samples list to generated variables files by count 
-if ! [ $(find . -maxdepth 1 -mindepth 1 -name '*.variables' | wc -l | sed 's/^[[:space:]]*//g') -eq $(sort "samplenames.list" | wc -l | sed 's/^[[:space:]]*//g') ] 
-then
-	echo "Number of variables files not as expected"
-	exit 1
-else
-	echo "Expected number of variables files created"
-fi
-
-#move fastq & variable files into project folders
+# move fastq & variable files into project folders
 for variableFile in $(ls *.variables); do
 
-	#reset variables
+	# reset variables
 	unset sampleId seqId worklistId pipelineVersion pipelineName panel
 
-	#load variables into local scope
+	# load variables into local scope
 	. "$variableFile"
 
-	#make sample folder
+	# make sample folder
 	mkdir Data/"$sampleId"
 	mv "$variableFile" Data/"$sampleId"
 	mv "$sampleId"_S*.fastq.gz Data/"$sampleId"
 	
-	#create analysis folders
-	if [[ ! -z ${pipelineVersion-} && ! -z ${pipelineName-} && ! -z ${panel-} ]]
+	# create analysis folders
+	if [[ ! -z ${pipelineVersion-} && ! -z ${pipelineName-} && ! -z ${panel-} && ! -z ${worklistId-} ]]
 	then
 
-		#make project folders
-		mkdir -p /data/results/"$seqId"
-		mkdir -p /data/results/"$seqId"/"$panel"
+		# set different output path for validations if given
+		if [ -z ${validation-} ] || [ $validation == 'FALSE' ]; then
+			res_dir=/$res_dir_base/"$seqId"/"$panel"/"$sampleId"
+		else 
+			res_dir=/$val_dir_base/"$seqId"/"$panel"/"$sampleId"
+		fi
+		unset validation
 
-		#make sample folder
-		mkdir /data/results/"$seqId"/"$panel"/"$sampleId"
+		# make project folders
+                mkdir -p $res_dir
 
 		#soft link files
-		ln -s $PWD/Data/"$sampleId"/"$variableFile" /data/results/"$seqId"/"$panel"/"$sampleId"
+		cp $PWD/Data/"$sampleId"/"$variableFile" $res_dir
 		for i in $(ls Data/"$sampleId"/"$sampleId"_S*.fastq.gz); do
-			ln -s $PWD/"$i" /data/results/"$seqId"/"$panel"/"$sampleId"
+			ln -s $PWD/"$i" $res_dir
 		done
 
-		#copy scripts
-		cp /data/diagnostics/pipelines/"$pipelineName"/"$pipelineName"-"$pipelineVersion"/*sh /data/results/"$seqId"/"$panel"/"$sampleId"
+		# copy scripts
+		cp /data/diagnostics/pipelines/"$pipelineName"/"$pipelineName"-"$pipelineVersion"/*sh $res_dir
 
-	else
-
-		echo "pipeline name, version or panel not set for " "$sampleId"
-		exit 1
-
-	fi
-
-done
-
-#queue pipeline
-# compare directory number in data/results/ to list of samples from sample sheet for each panel on the run
-for p in $(printf "%s\n" "${allPanels[@]}" | sort | uniq);
-do
-	echo $p panel
-	if ! [[ $(ls /data/results/"$seqId"/"$p"/ | wc -l) -eq $(grep "$p" samplepanels.list | wc -l | sed 's/^[[:space:]]*//g') ]]
-	then
-		echo "Number of sample directories created not as expected"
-		exit 1
-	else
-		echo "Expected number of sample directories created"
-		for sampledirectory in $(ls /data/results/"$seqId"/"$p"/)
-		do
-			bash -c "cd /data/results/$seqId/$p/$sampledirectory && qsub 1_*.sh"
-		done
+                bash -c "cd $res_dir && sbatch -J "$panel"-"$sampleId" 1_*.sh"
 	fi
 done
-
-
-#remove list of samples and list of samples and panels
-rm "samplenames.list"
-rm "samplepanels.list"

@@ -1,79 +1,90 @@
 #!/bin/sh
-#set -euo pipefail
+set -euo pipefail
 
-#Description: shell script to launch bioinformatics analysis pipelines. Run as root cron job without .sh extension
-#Author:Matt Lyon
-#Date: 17/09/19
-version="1.1.0"
+# Description: shell script to launch bioinformatics analysis pipelines.
+# This script should be executed as sbsuser 
+# Date: 18/08/20
+version="1.2.0"
+
+# use to write raw data
+raw_write="/data_heath/raw"
+
+# where IlluminaQC reads data from
+raw_read="/data/raw"
+
+# use to write to archive 
+arc_write="/data_heath/archive"
+
+# use to read from archive
+arc_read="/data/archive"
+
+# user to write from childnodes
+fastq_write="/Output/fastq"
 
 function processJobs {
-	
-		echo "checking for jobs in $1 ..."
+    echo "checking for jobs in $1 ..."
 
-		for path in $(find "$1" -maxdepth 2 -mindepth 2 -type f -name "RTAComplete.txt" -exec dirname '{}' \;); do
-				
-				#extract run info from path
-				instrumentType=$(basename $(dirname "$path"))
-				run=$(basename "$path")
-				
-				#if the sample sheet exists
-				if [ -f "/data/raw/$instrumentType/$run/SampleSheet.csv" ]; then
-				
-					#check whether it has Dragen in it
-					set +u
-					dragen="$(grep Dragen /data/raw/"$instrumentType"/"$run"/SampleSheet.csv | wc -l)"
-					echo $dragen
-					set -u
+    for path in $(find "$1" -maxdepth 2 -mindepth 2 -type f -name "RTAComplete.txt" -exec dirname '{}' \;); do
 
-				else
+        # extract run info from path
+        instrumentType=$(basename $(dirname "$path"))
+        run=$(basename "$path")
 
-					echo could not find sample sheet
-					dragen=0
+        # log
+	echo "path: $path"
+        echo "run: $run"
+        echo "instrumentType: $instrumentType"
+        
+        if [ -f "$path"/do_not_process ]; then
 
-				fi
+            echo "Not processing run $run"
+        else
 
-				if [ $dragen -gt 0 ]; then
+            # remove spaces from sample sheet
+            sed -i 's/ //g' $raw_write/$instrumentType/$run/SampleSheet.csv
 
-					echo "processing on Dragen"
+            # modify RTAComplete to prevent cron re-triggering
+            mv $raw_write/$instrumentType/$run/RTAComplete.txt $raw_write/$instrumentType/$run/_RTAComplete.txt
+        
+            #sleep 5m 
+            # counting instances of Dragen in SampleSheet
+            set +e
+            is_dragen=$(cat "$path"/SampleSheet.csv | grep "Dragen" | wc -l)
+            set -e
 
-					#move to novaseq dir
-					mv "$path" /data/raw/novaseq/ 
+            if [ $is_dragen -gt 0 ]; then
 
-					touch /data/raw/novaseq/"$run"/dragen-detected
+                echo "Keyword Dragen found in SampleSheet so executing DragenQC"
+                ssh ch1 "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch --export=sourceDir=$path /data/diagnostics/pipelines/DragenQC/DragenQC-master/DragenQC.sh"
+            else
 
-					#fix permissions          
-					chown -R sbsuser /data/raw/novaseq/"$run"
-					chgrp -R bi /data/raw/novaseq/"$run"
-					chmod -R 755 /data/raw/novaseq/"$run"
-					
+                # launch IlluminaQC for demultiplexing and QC
+                ssh ch1 "mkdir $fastq_write/$run && cd $fastq_write/$run && sbatch -J IlluminaQC-"$run" --export=sourceDir=$path /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh"
+            fi
 
-				else
+            # check we havent already copied the directory
+            if [ -d "$arc_write/$instrumentType/$run" ]; then
 
-					#log
-					echo "path: $path"
-					echo "run: $run"
-					echo "instrumentType: $instrumentType"
+                echo "$arc_write/$instrumentType/$run already exists"
+            else
 
-					#move run to archive
-					mv "$path" /data/archive/"$instrumentType"
-					
-					# stop automatic processing
-					touch /data/archive/"$instrumentType"/"$run"/run_copy_complete.txt
+                # move run to archive
+                cp -r "$raw_write/$instrumentType/$run" "$arc_write/$instrumentType/$run"
 
-					#change access permissions
-					chown -R transfer /data/archive/"$instrumentType"/"$run"
-					chgrp -R transfer /data/archive/"$instrumentType"/"$run"
-					chmod -R 755 /data/archive/"$instrumentType"/"$run"
+                touch "$arc_write/$instrumentType/$run"/run_copy_complete.txt
 
-					#launch IlluminaQC for demultiplexing and QC
-					ssh transfer@10.59.210.245 "mkdir /data/archive/fastq/$run && cd /data/archive/fastq/$run && qsub -v sourceDir=/data/archive/$instrumentType/$run /data/diagnostics/pipelines/IlluminaQC/IlluminaQC-$version/1_IlluminaQC.sh"
+                # change access permissions
+                chmod -R 755 "$arc_write"/"$instrumentType"/"$run"
+                chmod 777 "$arc_write"/"$instrumentType"/"$run"/SampleSheet.csv
+            
+            fi
 
-			 fi
+        fi
 
-		done
-
+    done
 }
 
-processJobs "/data/raw/miseq"
-processJobs "/data/raw/hiseq"
-processJobs "/data/raw/nextseq"
+#processJobs "$raw_read/hiseq"
+processJobs "$raw_read/nextseq"
+#processJobs "$raw_read/novaseq"
+#processJobs "$raw_read/miseq"
