@@ -54,12 +54,13 @@ for path in $(find $dragen_results_dir -maxdepth 3 -mindepth 3 -type f -name "dr
 
      cp -r /data/diagnostics/pipelines/"$post_processing_pipeline"/"$post_processing_pipeline"-"$post_processing_pipeline_version"/bin .
 
+    
+     mkdir logs
 
      # run nextflow
      nextflow -C \
      "$panel"_wren.config \
      run \
-     -E \
      "$post_processing_pipeline".nf \
      --bams ../\*/\*\{.bam,.bam.bai\} \
      --vcf ../"$runid"\{.vcf.gz,.vcf.gz.tbi\} \
@@ -69,6 +70,11 @@ for path in $(find $dragen_results_dir -maxdepth 3 -mindepth 3 -type f -name "dr
      -with-dag "$runid".png \
      -with-report "$runid".html \
      -work-dir work &> pipeline.log 
+
+     # mv logs
+     for i in $(find work/ -name "*.out" -type f ); do mv $i logs/$( echo $i | sed 's/work//' | sed 's/\///g' ) ;done
+
+     for i in $(find work/ -name "*.err" -type f ); do mv $i logs/$( echo $i | sed 's/work//' | sed 's/\///g' ) ;done
 
      # delete work dir
      rm -r work     

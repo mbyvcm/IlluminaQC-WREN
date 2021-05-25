@@ -98,4 +98,4 @@ function processJobs {
 #processJobs "$raw_read/hiseq"
 processJobs "$raw_read/nextseq"
 processJobs "$raw_read/novaseq"
-#processJobs "$raw_read/miseq"
+processJobs "$raw_read/miseq"
