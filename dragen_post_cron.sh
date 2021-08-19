@@ -65,6 +65,9 @@ for path in $(find $dragen_results_dir -maxdepth 3 -mindepth 3 -type f -name "dr
      --bams ../\*/\*\{.bam,.bam.bai\} \
      --vcf ../"$runid"\{.vcf.gz,.vcf.gz.tbi\} \
      --variables ../\*/\*.variables \
+     --sv_vcf ../"$runid".sv\{.vcf.gz,.vcf.gz.tbi\} \
+     --cnv_vcf ../"$runid".cnv\{.vcf.gz,.vcf.gz.tbi\} \
+     --bams_crams ../\*/\*\{.cram,.cram.crai\} \
      --publish_dir results \
      --sequencing_run "$runid" \
      -with-dag "$runid".png \
