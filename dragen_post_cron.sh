@@ -41,6 +41,7 @@ for path in $(find $dragen_results_dir -maxdepth 3 -mindepth 3 -type f -name "dr
 
      cd "$path"/post_processing
 
+
      set +u
      source activate $post_processing_pipeline
      set -u
@@ -68,6 +69,8 @@ for path in $(find $dragen_results_dir -maxdepth 3 -mindepth 3 -type f -name "dr
      --sv_vcf ../"$runid".sv\{.vcf.gz,.vcf.gz.tbi\} \
      --cnv_vcf ../"$runid".cnv\{.vcf.gz,.vcf.gz.tbi\} \
      --bams_crams ../\*/\*\{.cram,.cram.crai\} \
+     --repeat_vcf ../\*/\*.repeats\{.vcf.gz,.vcf.gz.tbi\} \
+     --repeat_bams ../\*/\*.repeats.bam \
      --publish_dir results \
      --sequencing_run "$runid" \
      -with-dag "$runid".png \

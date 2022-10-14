@@ -52,7 +52,10 @@ function processJobs {
                 
                     # modify RTAComplete to prevent cron re-triggering
                     mv $raw_write/$instrumentType/$run/RTAComplete.txt $raw_write/$instrumentType/$run/_RTAComplete.txt
-        
+
+                    #allow time for changes to copy from data_heath to data
+                    sleep 5m
+
                     # counting instances of Dragen in SampleSheet
                     set +e
                     is_dragen=$(cat "$path"/SampleSheet.csv | grep "Dragen" | wc -l)
