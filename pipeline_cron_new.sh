@@ -84,22 +84,16 @@ function processJobs {
 
                      fi
 
-                     # check we havent already copied the directory
-                     if [ -d "$arc_write/$instrumentType/$run" ]; then
 
-                         echo "$arc_write/$instrumentType/$run already exists"
-                     else
+                        # move run to archive
+                        #cp -r "$raw_write/$instrumentType/$run" "$arc_write/$instrumentType/$run"
 
-                         # move run to archive
-                         cp -r "$raw_write/$instrumentType/$run" "$arc_write/$instrumentType/$run"
-
-                         touch "$arc_write/$instrumentType/$run"/run_copy_complete.txt
+                        touch "$path"/run_copy_complete.txt
 
                          # change access permissions
-                         chmod -R 755 "$arc_write"/"$instrumentType"/"$run"
-                         chmod 777 "$arc_write"/"$instrumentType"/"$run"/SampleSheet.csv
+			chmod -R 755 "$path"
+                        chmod 777 "$path"/SampleSheet.csv
             
-                     fi
 
                  else
 

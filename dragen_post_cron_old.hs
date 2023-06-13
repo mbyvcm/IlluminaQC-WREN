@@ -75,7 +75,7 @@ for path in $(find $dragen_results_dir -maxdepth 3 -mindepth 3 -type f -name "dr
      --sequencing_run "$runid" \
      -with-dag "$runid".png \
      -with-report "$runid".html \
-     -work-dir /home/transfer/nextflow_work/dragen/"$runid"/"$panel"/work/ &> pipeline.log 
+     -work-dir work &> pipeline.log 
 
      # mv logs
      for i in $(find work/ -name "*.out" -type f ); do mv $i logs/$( echo $i | sed 's/work//' | sed 's/\///g' ) ;done
@@ -87,7 +87,7 @@ for path in $(find $dragen_results_dir -maxdepth 3 -mindepth 3 -type f -name "dr
      rm -r logs/
 
      # delete work dir
-     rm -r /home/transfer/nextflow_work/dragen/"$runid"/"$panel"/work/     
+     rm -r work     
 
      fi
 
