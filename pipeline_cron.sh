@@ -85,20 +85,22 @@ function processJobs {
                      fi
 
                      # check we havent already copied the directory
-                     if [ -d "$arc_write/$instrumentType/$run" ]; then
+                     if [ -d "/data_heath/archive/quality_temp/$instrumentType/$run" ]; then
 
-                         echo "$arc_write/$instrumentType/$run already exists"
+                         echo "/data_heath/archive/quality_temp/$instrumentType/$run already exists"
                      else
 
-                         # move run to archive
-                         cp -r "$raw_write/$instrumentType/$run" "$arc_write/$instrumentType/$run"
+                         # move run to archive temp quality archive
 
-                         touch "$arc_write/$instrumentType/$run"/run_copy_complete.txt
+			 mkdir "/data_heath/archive/quality_temp/$instrumentType/$run"
 
-                         # change access permissions
-                         chmod -R 755 "$arc_write"/"$instrumentType"/"$run"
-                         chmod 777 "$arc_write"/"$instrumentType"/"$run"/SampleSheet.csv
-            
+                         mkdir "/data_heath/archive/quality_temp/$instrumentType/$run/InterOp/"
+			 
+			 cp "$path"/InterOp/*.bin "/data_heath/archive/quality_temp/$instrumentType/$run/InterOp/"
+			 cp "$path"/SampleSheet.csv "/data_heath/archive/quality_temp/$instrumentType/$run/"
+			 cp "$path"/*.xml "/data_heath/archive/quality_temp/$instrumentType/$run/"
+			 touch "/data_heath/archive/quality_temp/$instrumentType/$run"/run_copy_complete.txt
+           		 touch $raw_write/$instrumentType/$run/ready_for_move.txt 
                      fi
 
                  else
