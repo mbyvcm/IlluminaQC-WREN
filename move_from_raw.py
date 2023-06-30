@@ -1,10 +1,11 @@
 import os
 import shutil
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
 # define the age threshold for directory movement
-threshold_days = 14  # configurable
+threshold_days = 10  # configurable
 
 # define base raw and archive directories
 raw_dir = '/data_heath/raw'
@@ -14,7 +15,7 @@ archive_qc = '/data_heath/archive/quality_temp'
 # get today's date
 today = datetime.now()
 
-max_moves = 5
+max_moves = 10
 move_count = 0
 
 # iterate over raw_dir's subdirectories
@@ -36,7 +37,12 @@ for subdir in os.listdir(raw_dir):
 				dir_date_str = seq_dir[:6]  # get the first six characters
 
 				# convert date from string to datetime object
-				dir_date = datetime.strptime(dir_date_str, "%y%m%d")
+				try:
+					dir_date = datetime.strptime(dir_date_str, "%y%m%d")
+				except:
+
+					print(f'Cannot convert folder ({seqdir}) to date')
+					continue
 
 				# check if the directory is older than threshold_days
 				if (today - dir_date).days > threshold_days:
@@ -56,10 +62,13 @@ for subdir in os.listdir(raw_dir):
 
 						# move the directory to the archive
 						print('move', str(seq_dir_path),  str(archive_subdir_path))
-						#shutil.move(str(seq_dir_path), str(archive_subdir_path))
+						shutil.move(str(seq_dir_path), str(archive_subdir_path))
 
-						print('delete', str(archive_qc_subdir_path))
-						#shutil.rmtree(str(archive_qc_subdir_path))
+						if archive_qc_subdir_path.exists():
+							print('delete', str(archive_qc_subdir_path))
+							shutil.rmtree(str(archive_qc_subdir_path))
+						
+						time.sleep(600)						
 
 						move_count = move_count + 1
 
