@@ -87,7 +87,7 @@ for path in $(find $dragen_results_dir -maxdepth 3 -mindepth 3 -type f -name "dr
      rm -r logs/
 
      # delete work dir
-     rm -r /home/transfer/nextflow_work/dragen/"$runid"/"$panel"/work/     
+     rm -r /home/transfer/nextflow_work/dragen/"$runid"/"$panel"/     
 
      fi
 

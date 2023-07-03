@@ -15,7 +15,7 @@ archive_qc = '/data_heath/archive/quality_temp'
 # get today's date
 today = datetime.now()
 
-max_moves = 10
+max_moves = 12
 move_count = 0
 
 # iterate over raw_dir's subdirectories
@@ -68,7 +68,7 @@ for subdir in os.listdir(raw_dir):
 							print('delete', str(archive_qc_subdir_path))
 							shutil.rmtree(str(archive_qc_subdir_path))
 						
-						time.sleep(600)						
+						time.sleep(120)						
 
 						move_count = move_count + 1
 
